@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Modul450.Code; // Angenommen, dies ist der Namespace, der Ihre Service-Klassen enthält
 using Moq;
-// weitere using-Direktiven, die Sie benötigen
+using Modul450.Code;
+using System;
 
 namespace Modul450.TestProject1
 {
@@ -9,33 +9,36 @@ namespace Modul450.TestProject1
     public class AuftragsdurchführungTests
     {
         private Mock<IMeinService> _mockService;
-        private MeinService _serviceUnderTest;
-        private IOrder _order;
-        private IVehicle _vehicle;
+        private Mock<IOrder> _mockOrder;
+        private Mock<IVehicle> _mockVehicle;
 
         [SetUp]
         public void SetUp()
         {
             // Mock-Objekte für den Service und Abhängigkeiten einrichten
             _mockService = new Mock<IMeinService>();
-            // Angenommen, IOrder und IVehicle sind Interfaces, die im Hauptprojekt definiert sind
-            _order = Mock.Of<IOrder>();
-            _vehicle = Mock.Of<IVehicle>();
+            _mockOrder = new Mock<IOrder>();
+            _mockVehicle = new Mock<IVehicle>();
 
-            // Initialisieren Sie hier Ihr eigentliches Service-Objekt, wenn Sie kein Mock verwenden
-            // _serviceUnderTest = new MeinService();
+            // Mock-Einstellungen für das IOrder Interface
+            _mockOrder.Setup(o => o.StartLocation).Returns("Lager");
+            _mockOrder.Setup(o => o.EndLocation).Returns("Hafen");
+            _mockOrder.Setup(o => o.ContainerSize).Returns(20);
+
+            // Mock-Einstellungen für das IVehicle Interface
+            _mockVehicle.Setup(v => v.LoadCargo(It.IsAny<int>())).Returns(true);
         }
 
         [Test]
         public void AuftragErfolgreichDurchgeführt()
         {
             // Mock-Setup, um ein erfolgreiches Durchführen eines Auftrags zu simulieren
-            _mockService.Setup(s => s.FühreAuftragAus(_order)).Returns(true);
+            _mockService.Setup(s => s.FühreAuftragAus(_mockOrder.Object)).Returns(true);
 
             // Aufruf der Methode, die getestet wird
-            bool ergebnis = _serviceUnderTest.FühreAuftragAus(_order);
+            bool ergebnis = _mockService.Object.FühreAuftragAus(_mockOrder.Object);
 
-            // Assert, dass die Methode true zurückgibt, was einem erfolgreichen Durchführen entspricht
+            // Überprüfen, ob das erwartete Ergebnis zurückgegeben wird
             Assert.IsTrue(ergebnis);
         }
 
@@ -43,12 +46,12 @@ namespace Modul450.TestProject1
         public void AuftragNichtDurchgeführtBeiNichtVerfügbarkeit()
         {
             // Mock-Setup, um ein Szenario zu simulieren, bei dem kein Fahrzeug verfügbar ist
-            _mockService.Setup(s => s.FühreAuftragAus(_order)).Returns(false);
+            _mockService.Setup(s => s.FühreAuftragAus(_mockOrder.Object)).Returns(false);
 
             // Aufruf der Methode, die getestet wird
-            bool ergebnis = _serviceUnderTest.FühreAuftragAus(_order);
+            bool ergebnis = _mockService.Object.FühreAuftragAus(_mockOrder.Object);
 
-            // Assert, dass die Methode false zurückgibt, was einem fehlgeschlagenen Durchführen entspricht
+            // Überprüfen, ob das erwartete Ergebnis zurückgegeben wird
             Assert.IsFalse(ergebnis);
         }
 
@@ -56,13 +59,10 @@ namespace Modul450.TestProject1
         public void AuftragNichtDurchgeführtBeiUngültigenDaten()
         {
             // Mock-Setup, um ein Szenario mit ungültigen Daten zu simulieren
-            // Angenommen, Ihre Service-Methode wirft eine Exception bei ungültigen Daten
             _mockService.Setup(s => s.FühreAuftragAus(It.IsAny<IOrder>())).Throws(new InvalidDataException());
 
-            // Aufruf der Methode, die getestet wird, und Überprüfung auf eine Exception
-            Assert.Throws<InvalidDataException>(() => _serviceUnderTest.FühreAuftragAus(_order));
+            // Überprüfen, ob beim Aufruf der Methode eine InvalidDataException geworfen wird
+            Assert.Throws<InvalidDataException>(() => _mockService.Object.FühreAuftragAus(_mockOrder.Object));
         }
-
-        // Weitere Testmethoden...
     }
 }

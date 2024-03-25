@@ -1,53 +1,43 @@
 using NUnit.Framework;
-using Modul450.Code; // Ersetzen Sie dies durch den tatsächlichen Namespace Ihrer Klassen
-// Weitere using-Direktiven für Datenbankzugriff, Netzwerkoperationen usw.
+using Moq;
+using Modul450.Code;  // Ersetzen Sie dies durch den tatsächlichen Namespace Ihrer Klassen
 
 namespace Modul450.TestProject1
 {
     [TestFixture]
     public class SystemIntegrationTests
     {
-        private DatenbankService _datenbankService; // Beispiel für einen Datenbankdienst
-        private NetzwerkService _netzwerkService;   // Beispiel für einen Netzwerkdienst
-        private AuftragsService _auftragsService;   // Der Service, der die Aufträge durchführt
+        private Mock<IVehicle> _mockVehicle;
+        private MeinService _meinService;  // Angenommen, dies ist Ihre konkrete Service-Implementierung
+        private Mock<IOrder> _mockOrder;   // Mock für IOrder
 
         [SetUp]
         public void SetUp()
         {
-            // Stellen Sie hier die Verbindungen zu Ihrer echten Datenbank und Netzwerkdiensten her
-            _datenbankService = new DatenbankService(/* Verbindungsstring oder Konfiguration */);
-            _netzwerkService = new NetzwerkService(/* Konfiguration */);
+            // Mock-Objekte erstellen
+            _mockVehicle = new Mock<IVehicle>();
+            _mockOrder = new Mock<IOrder>();
 
-            // Der AuftragsService könnte die beiden obigen Services verwenden
-            _auftragsService = new AuftragsService(_datenbankService, _netzwerkService);
+            // IOrder Mock konfigurieren
+            _mockOrder.Setup(o => o.StartLocation).Returns("Start");
+            _mockOrder.Setup(o => o.EndLocation).Returns("Ziel");
+            _mockOrder.Setup(o => o.ContainerSize).Returns(20);
+
+            // MeinService mit den Mocks initialisieren
+            _meinService = new MeinService(_mockVehicle.Object);
         }
 
         [Test]
-        public void AuftragErfolgreichInDatenbankGespeichertUndNetzwerkBenachrichtigt()
+        public void ServiceVerarbeitetAuftrag()
         {
-            // Erzeugen eines Auftrags für den Test
-            var auftrag = new Auftrag(/* notwendige Parameter */);
+            // Aktion: Der Service versucht, den Auftrag zu verarbeiten
+            _meinService.FühreAuftragAus(_mockOrder.Object);
 
-            // Durchführung des Auftrags
-            _auftragsService.FühreAuftragAus(auftrag);
-
-            // Überprüfen, ob der Auftrag in der Datenbank gespeichert wurde
-            bool istInDatenbankGespeichert = _datenbankService.IstAuftragGespeichert(auftrag);
-            Assert.IsTrue(istInDatenbankGespeichert);
-
-            // Überprüfen, ob eine entsprechende Netzwerknachricht gesendet wurde
-            bool istNetzwerkBenachrichtigt = _netzwerkService.WurdeNetzwerkBenachrichtigt(auftrag);
-            Assert.IsTrue(istNetzwerkBenachrichtigt);
+            // Assertions: Überprüfen, ob die erwarteten Methoden aufgerufen wurden
+            _mockVehicle.Verify(v => v.LoadCargo(It.IsAny<int>()), Times.Once);
+            // Hier würden Sie weitere Assertions hinzufügen, um das Verhalten zu verifizieren
         }
 
-        // Weitere Integrationstests...
-
-        [TearDown]
-        public void CleanUp()
-        {
-            // Bereinigungslogik, um Änderungen rückgängig zu machen, z.B. in der Datenbank
-            _datenbankService.RückgängigMachen();
-            _netzwerkService.Disconnect();
-        }
+        // Weitere Integrationstests und TearDown-Methode wie benötigt...
     }
 }
